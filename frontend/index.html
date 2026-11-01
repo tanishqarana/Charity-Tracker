@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Charity Donation Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">§</span>
+        <div>
+          <h1>Charity Donation Tracker</h1>
+          <p class="sub">Every donation in, every payment out, on a public ledger.</p>
+        </div>
+      </div>
+      <div class="wallet">
+        <span id="networkPill" class="pill">Not connected</span>
+        <button id="connectBtn" class="btn btn-primary">Connect wallet</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="configBanner" class="banner banner-warn" hidden>
+      Contract addresses are not set. Deploy the contracts, then paste the
+      addresses into <code>frontend/config.js</code>.
+    </div>
+    <div id="toast" class="banner" hidden></div>
+
+    <!-- 1. Where the money is -->
+    <section class="card">
+      <div class="card-head">
+        <h2>Where the money is</h2>
+        <button id="refreshBtn" class="btn btn-ghost btn-sm">Refresh</button>
+      </div>
+
+      <div class="target">
+        <div class="target-row">
+          <span>Fundraising target</span>
+          <span class="mono"><b id="usdcRaisedForTarget">0</b> / <span id="targetValue">0</span></span>
+        </div>
+        <div class="bar"><div id="targetBar" class="bar-fill" style="width:0%"></div></div>
+        <p class="note">Progress counts USDC only. Comparing <span class="native-sym">POL</span> against a USD target needs a price feed, and the contract doesn't have one.</p>
+      </div>
+
+      <div class="ledger">
+        <div class="ledger-col">
+          <h3 class="native-sym">POL</h3>
+          <dl>
+            <div><dt>Total donated</dt><dd id="ethTotal" class="mono">–</dd></div>
+            <div><dt>Held for the cause</dt><dd id="ethAllocated" class="mono">–</dd></div>
+            <div><dt>Reserved for approved payments</dt><dd id="ethReserved" class="mono">–</dd></div>
+            <div class="em"><dt>Available to propose</dt><dd id="ethAvailable" class="mono">–</dd></div>
+          </dl>
+        </div>
+        <div class="ledger-col">
+          <h3>USDC</h3>
+          <dl>
+            <div><dt>Total donated</dt><dd id="usdcTotal" class="mono">–</dd></div>
+            <div><dt>Held for the cause</dt><dd id="usdcAllocated" class="mono">–</dd></div>
+            <div><dt>Reserved for approved payments</dt><dd id="usdcReserved" class="mono">–</dd></div>
+            <div class="em"><dt>Available to propose</dt><dd id="usdcAvailable" class="mono">–</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid-2">
+      <!-- 2. Donate -->
+      <section class="card">
+        <h2>Donate</h2>
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-asset="native" role="tab"><span class="native-sym">POL</span></button>
+          <button class="tab" data-asset="usdc" role="tab">USDC</button>
+        </div>
+        <form id="donateForm" class="form">
+          <label>
+            Amount
+            <div class="input-suffix">
+              <input id="donateAmount" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off" required />
+              <span id="donateSuffix" class="native-sym">POL</span>
+            </div>
+          </label>
+          <p id="usdcHint" class="note" hidden>USDC needs two transactions: an <b>approve</b> so the contract may pull your tokens, then the <b>donation</b> itself.</p>
+          <button class="btn btn-primary" type="submit">Donate</button>
+        </form>
+
+        <h3 class="mt">Your donations</h3>
+        <ul id="myDonations" class="list"><li class="muted">Connect a wallet to see your history.</li></ul>
+      </section>
+
+      <!-- 3. Vendor lookup -->
+      <section class="card">
+        <h2>Check a vendor</h2>
+        <p class="note">Payments can only go to vendors registered through the 48-hour timelock.</p>
+        <form id="vendorForm" class="form">
+          <label>
+            Vendor wallet address
+            <input id="vendorAddr" type="text" placeholder="0x…" autocomplete="off" required />
+          </label>
+          <button class="btn" type="submit">Check</button>
+        </form>
+        <p id="vendorResult" class="result" hidden></p>
+
+        <h3 class="mt">Recent donations</h3>
+        <ul id="feed" class="list"><li class="muted">Loading…</li></ul>
+      </section>
+    </div>
+
+    <!-- 4. Payments -->
+    <section class="card">
+      <h2>Payments to vendors</h2>
+      <p class="note">A payment needs approval from 2 of the 3 admins. The second approval reserves the funds; then any admin can execute.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Vendor</th><th>Purpose</th><th class="r">Amount</th><th>Approvals</th><th>Status</th><th id="actionsHead" hidden></th></tr>
+          </thead>
+          <tbody id="proposals"><tr><td colspan="7" class="muted">No payment proposals yet.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5. Admin -->
+    <section id="adminPanel" class="card card-admin" hidden>
+      <h2>Admin</h2>
+      <p class="note">You're signed in as one of the three admins.</p>
+      <div class="grid-2">
+        <form id="proposeForm" class="form">
+          <h3>Propose a payment</h3>
+          <label>Vendor address <input id="pVendor" type="text" placeholder="0x…" required /></label>
+          <label>Asset
+            <select id="pAsset">
+              <option value="native" class="native-sym">POL</option>
+              <option value="usdc">USDC</option>
+            </select>
+          </label>
+          <label>Amount <input id="pAmount" type="text" inputmode="decimal" placeholder="0.00" required /></label>
+          <label>Purpose <input id="pPurpose" type="text" placeholder="e.g. 200 school kits" required /></label>
+          <button class="btn btn-primary" type="submit">Propose</button>
+        </form>
+
+        <div>
+          <form id="targetForm" class="form">
+            <h3>Change the fundraising target</h3>
+            <label>New target <div class="input-suffix"><input id="tAmount" type="text" inputmode="decimal" placeholder="0.00" required /><span id="tSuffix">USDC</span></div></label>
+            <button class="btn" type="submit">Propose target</button>
+          </form>
+          <ul id="targetProposals" class="list mt"></ul>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span>Donations contract: <a id="donationsLink" class="mono" target="_blank" rel="noopener">–</a></span>
+      <span>Vendor registry: <a id="registryLink" class="mono" target="_blank" rel="noopener">–</a></span>
+    </footer>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

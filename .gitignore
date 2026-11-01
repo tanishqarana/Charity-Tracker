@@ -1,34 +1,14 @@
-# Secrets
+# Secrets: never commit private keys or RPC URLs with API keys
 .env
-**/.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
 
-# Dependency directories
-node_modules/
-**/node_modules/
-
-# Hardhat
-artifacts/
-**/artifacts/
-cache/
-**/cache/
-typechain-types/
-**/typechain-types/
-coverage/
-**/coverage/
-coverage.json
-**/coverage.json
-
-# Next.js
-.next/
-**/.next/
+# Foundry build output
 out/
-**/out/
+cache/
+broadcast/
 
-# System
+# Dependencies
+node_modules/
+
+# OS
 .DS_Store
-**/.DS_Store
-Thumbs.db
