@@ -14,25 +14,29 @@ contract Timelock{
     address executor;
     address cancellor;
 
+
+    uint8 constant PROPOSER_ROLE = 1 << 0;
+    uint8 constant CANCELLOR_ROLE = 1 << 1;
+    uint8 constant EXECUTOR_ROLE = 1 << 2;
+
+    mapping(address => uint8) authRoles;
+
     constructor(
-        address Proposer,
-        address Cancellor,
-        address Executor
-    ){
+    address Proposer,
+    address Cancellor,
+    address Executor
+    ) {
         proposer = Proposer;
-        authRole[proposer] = "proposer";
+        authRoles[Proposer] |= PROPOSER_ROLE;
 
         cancellor = Cancellor;
-        authRole[cancellor] = "cancellor";
+        authRoles[Cancellor] |= CANCELLOR_ROLE;
 
         executor = Executor;
-        authRole[executor] = "executor";
+        authRoles[Executor] |= EXECUTOR_ROLE;
     }
 
     error stateDone (string message);
-   
-
-    mapping ( address => string ) authRole;
 
     //Cannot execute a state changing assignment inside the contract body
     //authRole[proposer].name = 'proposer';
@@ -51,20 +55,30 @@ contract Timelock{
         
 
     modifier onlyProposer() {
-        
-        require(keccak256(bytes(authRole[msg.sender])) == keccak256(bytes("proposer")), "Not authorised to run this");
+        require(
+            (authRoles[msg.sender] & PROPOSER_ROLE) != 0,
+            "Not authorised to run this"
+        );
         _;
     }
 
     modifier onlyCancellor() {
-        require(keccak256(bytes(authRole[msg.sender])) == keccak256(bytes("cancellor")), "Not authorised to run this");
+        require(
+            (authRoles[msg.sender] & CANCELLOR_ROLE) != 0,
+            "Not authorised to run this"
+        );
         _;
     }
 
     modifier onlyExecutor() {
-        require(keccak256(bytes(authRole[msg.sender])) == keccak256(bytes("executor")), "Not authorised to run this");
+        require(
+            (authRoles[msg.sender] & EXECUTOR_ROLE) != 0,
+            "Not authorised to run this"
+        );
         _;
     }
+
+    
 
 
     function execute(bytes32 operationId) public onlyExecutor {

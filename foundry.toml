@@ -3,4 +3,12 @@ src = "src"
 out = "out"
 libs = ["lib"]
 
+# `--rpc-url amoy` reads this. Values come from .env.
+[rpc_endpoints]
+amoy = "${AMOY_RPC_URL}"
+
+# `--verify` reads this.
+[etherscan]
+amoy = { key = "${ETHERSCAN_API_KEY}", chain = 80002 }
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

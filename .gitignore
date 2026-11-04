@@ -12,3 +12,6 @@ node_modules/
 
 # OS
 .DS_Store
+
+# ...but the template with no secrets is meant to be shared
+!.env.example

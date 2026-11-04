@@ -260,4 +260,34 @@ contract TimelockTest is Test {
         vm.expectRevert("Target is not a contract");
         timelock.execute(operationId);
     }
+
+    function testAddressCanHoldMultipleRoles() public {
+    address sharedAddress = makeAddr("shared");
+
+    Timelock multiRoleTimelock =
+        new Timelock(
+            sharedAddress,
+            sharedAddress,
+            executor
+        );
+
+    bytes memory payload = abi.encode(
+        address(target),
+        abi.encodeCall(MockTarget.setValue, (100))
+    );
+
+    // Address can schedule as proposer.
+    vm.prank(sharedAddress);
+    (, bytes32 operationId) =
+        multiRoleTimelock.schedule(payload, 48 hours);
+
+    // Same address can cancel as cancellor.
+    vm.prank(sharedAddress);
+    multiRoleTimelock.cancel(operationId);
+
+    assertEq(
+        uint256(multiRoleTimelock.checkState(operationId)),
+        uint256(Timelock.OperationState.Unset)
+    );
+}
 }
